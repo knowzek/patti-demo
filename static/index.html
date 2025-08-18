@@ -27,7 +27,7 @@
   </style>
 </head>
 <body>
-  <h1>Patti — Virtual Sales Assistant (Demo)</h1>
+  <h1>Patti - Virtual Sales Assistant (Demo)</h1>
   <p class="sub">Patti is trained to role-play as a dealership sales assistant. She responds to incoming guest inquiries with warm, professional, brand-aligned messages that highlight dealership value, recommend vehicles, and drive toward booking an appointment.
 
 This demo version is designed for role-play so you can test Patti’s tone, objection handling, and appointment-setting skills. Paste a lead inquiry below to start the conversation (e.g., “I’m interested in a Telluride.”). 
@@ -80,7 +80,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const res = await api("/session", {});
   if (!res.error && res.threadId) {
     threadId = res.threadId;
-    $("chat").innerHTML = `<div class="msg ai">✅ New session started. Try an objection like: “I hate haggling. Give me your best OTD price and I’ll book.”</div>`;
+    $("chat").innerHTML = `<div class="msg ai">New session started. Refresh the page to start a new session. </div>`;
   }
 });
 
