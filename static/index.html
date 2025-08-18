@@ -33,9 +33,6 @@
 This demo version is designed for role-play so you can test Patti’s tone, objection handling, and appointment-setting skills. Paste a lead inquiry below to start the conversation (e.g., “I’m interested in a Telluride.”). 
   </p>
 
-  <div class="row">
-    <button id="start">New Session</button>
-  </div>
 Paste a lead inquiry (e.g., “I’m interested in a Telluride.”). 
   <div class="chat" id="chat"></div>
 
@@ -57,16 +54,6 @@ async function api(path, body) {
   });
   return res.json();
 }
-
-$("start").onclick = async () => {
-  const res = await api("/message", { threadId, content: text });
-  const reply = (res && res.reply) ? res.reply : "Sorry—couldn’t reach the server.";
-
-  if (res.error) { alert(res.error); return; }
-  threadId = res.threadId;
-  $("chat").innerHTML = `<div class="msg ai">New session started. Refresh the page to begin a new session</div>`;
-  $("input").value = "";
-};
 
 $("send").onclick = sendMsg;
 $("input").addEventListener("keydown", e => { if (e.key === "Enter") sendMsg(); });
