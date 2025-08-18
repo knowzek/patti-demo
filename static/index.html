@@ -32,7 +32,6 @@
   This uses your Assistants API runtime — no CRM writes.</p>
 
   <div class="row">
-    <input id="pin" placeholder="PIN (if required)">
     <button id="start">New Session</button>
   </div>
 
@@ -45,7 +44,7 @@
   <div class="chat" id="chat"></div>
 
   <div class="footer">
-    <input id="input" placeholder="Type the shopper’s message…">
+    <input id="input" placeholder="Type the customers’s message…">
     <button id="send">Send</button>
   </div>
   <div class="tip">Pro tip: click a seed prompt to paste it.</div>
@@ -55,10 +54,12 @@ let threadId = null;
 const $ = (id)=>document.getElementById(id);
 
 async function api(path, body) {
-  const headers = { "Content-Type":"application/json" };
-  const pin = $("pin").value.trim();
-  if (pin) headers["X-DEMO-PIN"] = pin;
-  const res = await fetch(path, { method:"POST", headers, body: JSON.stringify(body||{}) });
+  const headers = { "Content-Type": "application/json" };
+  const res = await fetch(path, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body || {})
+  });
   return res.json();
 }
 
