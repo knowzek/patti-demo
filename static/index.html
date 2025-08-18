@@ -44,7 +44,7 @@
   <div class="chat" id="chat"></div>
 
   <div class="footer">
-    <input id="input" placeholder="Type the customers’s message…">
+    <input id="input" placeholder="Type the customer’s message…">
     <button id="send">Send</button>
   </div>
   <div class="tip">Pro tip: click a seed prompt to paste it.</div>
@@ -64,10 +64,13 @@ async function api(path, body) {
 }
 
 $("start").onclick = async () => {
-  const res = await api("/session", {});
+  const res = await api("/message", { threadId, content: text });
+  const reply = (res && res.reply) ? res.reply : "Sorry—couldn’t reach the server.";
+
   if (res.error) { alert(res.error); return; }
   threadId = res.threadId;
   $("chat").innerHTML = `<div class="msg ai">✅ New session started. Try an objection like: “I hate haggling. Give me your best OTD price and I’ll book.”</div>`;
+  $("input").value = "";
 };
 
 $("send").onclick = sendMsg;
@@ -90,8 +93,17 @@ function nl2br(s){ return s.replace(/\n/g, "<br>"); }
 function escapeHtml(s){
   return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
+  
+document.addEventListener("DOMContentLoaded", async () => {
+  const res = await api("/session", {});
+  if (!res.error && res.threadId) {
+    threadId = res.threadId;
+    $("chat").innerHTML = `<div class="msg ai">✅ New session started. Try an objection like: “I hate haggling. Give me your best OTD price and I’ll book.”</div>`;
+  }
+});
 
 document.querySelectorAll(".seed").forEach(el => el.onclick = () => { $("input").value = el.textContent; $("input").focus(); });
+
 </script>
 </body>
 </html>
