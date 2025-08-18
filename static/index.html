@@ -1,0 +1,96 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Patti — Virtual Sales Assistant (Demo)</title>
+  <style>
+    :root { --bg:#fff; --card:#f6f7f9; --border:#e6e8ec; --text:#111; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+           margin: 24px auto; max-width: 860px; color: var(--text); }
+    h1 { margin: 0 0 6px; }
+    .sub { color:#555; margin: 0 0 18px; }
+    .row { display:flex; gap:8px; flex-wrap: wrap; margin: 10px 0 14px; }
+    input, button { padding: 10px 12px; font-size: 16px; }
+    #pin { width: 180px; }
+    #start { cursor: pointer; }
+    .chat { border:1px solid var(--border); border-radius:12px; padding:16px;
+            min-height:420px; background: var(--bg); }
+    .msg { margin: 10px 0; line-height:1.4; }
+    .you { color:#333; }
+    .ai { background: var(--card); border-radius:10px; padding:10px; }
+    .footer { display:flex; gap:8px; margin-top:12px; }
+    #input { flex:1; }
+    .tip { font-size: 14px; color:#666; margin-top: 10px; }
+    .seed { display:inline-block; padding:6px 10px; border:1px solid var(--border);
+            border-radius: 999px; margin: 4px 4px 0 0; cursor:pointer; background:#fff; }
+  </style>
+</head>
+<body>
+  <h1>Patti — Virtual Sales Assistant (Demo)</h1>
+  <p class="sub">Paste a shopper inquiry (e.g., “I’m interested in a Telluride—do you have any?”). 
+  This uses your Assistants API runtime — no CRM writes.</p>
+
+  <div class="row">
+    <input id="pin" placeholder="PIN (if required)">
+    <button id="start">New Session</button>
+  </div>
+
+  <div id="seeds">
+    <span class="seed">I found this $2k cheaper across town—can you match it?</span>
+    <span class="seed">What’s the out-the-door price on stock #12345?</span>
+    <span class="seed">I have a trade with a rebuilt title — worth bringing in?</span>
+  </div>
+
+  <div class="chat" id="chat"></div>
+
+  <div class="footer">
+    <input id="input" placeholder="Type the shopper’s message…">
+    <button id="send">Send</button>
+  </div>
+  <div class="tip">Pro tip: click a seed prompt to paste it.</div>
+
+<script>
+let threadId = null;
+const $ = (id)=>document.getElementById(id);
+
+async function api(path, body) {
+  const headers = { "Content-Type":"application/json" };
+  const pin = $("pin").value.trim();
+  if (pin) headers["X-DEMO-PIN"] = pin;
+  const res = await fetch(path, { method:"POST", headers, body: JSON.stringify(body||{}) });
+  return res.json();
+}
+
+$("start").onclick = async () => {
+  const res = await api("/session", {});
+  if (res.error) { alert(res.error); return; }
+  threadId = res.threadId;
+  $("chat").innerHTML = `<div class="msg ai">✅ New session started. Try an objection like: “I hate haggling. Give me your best OTD price and I’ll book.”</div>`;
+};
+
+$("send").onclick = sendMsg;
+$("input").addEventListener("keydown", e => { if (e.key === "Enter") sendMsg(); });
+
+async function sendMsg() {
+  const text = $("input").value.trim();
+  if (!text) return;
+  if (!threadId) { alert("Start a session first."); return; }
+  $("chat").innerHTML += `<div class="msg you"><b>You:</b> ${escapeHtml(text)}</div>`;
+  $("input").value = "";
+  $("chat").innerHTML += `<div class="msg ai" id="thinking">…thinking…</div>`;
+  const res = await api("/message", { threadId, content: text });
+  const think = $("thinking"); if (think) think.remove();
+  $("chat").innerHTML += `<div class="msg ai"><b>Patti:</b><br>${nl2br(escapeHtml(res.reply || ""))}</div>`;
+  $("chat").scrollTop = $("chat").scrollHeight;
+}
+
+function nl2br(s){ return s.replace(/\n/g, "<br>"); }
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+document.querySelectorAll(".seed").forEach(el => el.onclick = () => { $("input").value = el.textContent; $("input").focus(); });
+</script>
+</body>
+</html>
