@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Patti — Virtual Sales Assistant (Demo)</title>
+  <title>Patti - Virtual Sales Assistant (Demo)</title>
   <style>
     :root { --bg:#fff; --card:#f6f7f9; --border:#e6e8ec; --text:#111; }
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
@@ -28,26 +28,21 @@
 </head>
 <body>
   <h1>Patti — Virtual Sales Assistant (Demo)</h1>
-  <p class="sub">Paste a shopper inquiry (e.g., “I’m interested in a Telluride—do you have any?”). 
-  This uses your Assistants API runtime — no CRM writes.</p>
+  <p class="sub">Patti is trained to role-play as a dealership sales assistant. She responds to incoming guest inquiries with warm, professional, brand-aligned messages that highlight dealership value, recommend vehicles, and drive toward booking an appointment.
+
+This demo version is designed for role-play so you can test Patti’s tone, objection handling, and appointment-setting skills. Paste a lead inquiry below to start the conversation (e.g., “I’m interested in a Telluride.”). 
+  </p>
 
   <div class="row">
     <button id="start">New Session</button>
   </div>
-
-  <div id="seeds">
-    <span class="seed">I found this $2k cheaper across town—can you match it?</span>
-    <span class="seed">What’s the out-the-door price on stock #12345?</span>
-    <span class="seed">I have a trade with a rebuilt title — worth bringing in?</span>
-  </div>
-
+Paste a lead inquiry (e.g., “I’m interested in a Telluride.”). 
   <div class="chat" id="chat"></div>
 
   <div class="footer">
     <input id="input" placeholder="Type the customer’s message…">
     <button id="send">Send</button>
   </div>
-  <div class="tip">Pro tip: click a seed prompt to paste it.</div>
 
 <script>
 let threadId = null;
@@ -69,7 +64,7 @@ $("start").onclick = async () => {
 
   if (res.error) { alert(res.error); return; }
   threadId = res.threadId;
-  $("chat").innerHTML = `<div class="msg ai">✅ New session started. Try an objection like: “I hate haggling. Give me your best OTD price and I’ll book.”</div>`;
+  $("chat").innerHTML = `<div class="msg ai">New session started. Refresh the page to begin a new session</div>`;
   $("input").value = "";
 };
 
