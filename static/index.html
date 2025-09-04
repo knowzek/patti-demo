@@ -45,99 +45,90 @@
   </div>
 
   <script>
-    let threadId = null;
-    const $ = (id)=>document.getElementById(id);
-
-    // ---------- Helpers ----------
-    function nl2br(s){ return (s || "").replace(/\n/g, "<br>"); }
-    function escapeHtml(s){
-      return (s || "").replace(/[&<>"']/g, m => (
-        {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]
-      ));
+  let threadId = null;
+  const $ = (id)=>document.getElementById(id);
+  
+  function nl2br(s){ return (s || "").replace(/\n/g, "<br>"); }
+  function escapeHtml(s){
+    return (s || "").replace(/[&<>"']/g, m => (
+      {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]
+    ));
+  }
+  
+  async function api(path, body) {
+    const headers = { "Content-Type": "application/json" };
+    const res = await fetch(path, { method: "POST", headers, body: JSON.stringify(body || {}) });
+    return res.json();
+  }
+  
+  document.addEventListener("DOMContentLoaded", async () => {
+    const res = await api("/session", {});
+    if (!res.error && res.threadId) {
+      threadId = res.threadId;
+      $("chat").innerHTML = `<div class="msg ai">New session started. Refresh the page to start a new session.</div>`;
+    } else {
+      $("chat").innerHTML = `<div class="msg ai">❌ Failed to start session.</div>`;
     }
-
-    async function api(path, body) {
-      const headers = { "Content-Type": "application/json" };
-      const res = await fetch(path, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(body || {})
-      });
-      return res.json();
-    }
-
-    // ---------- Auto-start a session on load ----------
-    document.addEventListener("DOMContentLoaded", async () => {
-      const res = await api("/session", {});
-      if (!res.error && res.threadId) {
-        threadId = res.threadId;
-        $("chat").innerHTML = `<div class="msg ai">New session started. Refresh the page to start a new session.</div>`;
-      } else {
-        $("chat").innerHTML = `<div class="msg ai">❌ Failed to start session.</div>`;
-      }
-    });
-
-    // ---------- Send message flow ----------
-    $("send").onclick = sendMsg;
-    $("input").addEventListener("keydown", e => { if (e.key === "Enter") sendMsg(); });
-
-    async function sendMsg() {
-      const text = $("input").value.trim();
-      if (!text) return;
-      if (!threadId) { alert("Start a session first."); return; }
-
-      $("chat").innerHTML += `<div class="msg you"><b>You:</b> ${escapeHtml(text)}</div>`;
-      $("input").value = "";
-      $("chat").innerHTML += `<div class="msg ai" id="thinking">…thinking…</div>`;
-
-      const res = await api("/message", { threadId, content: text });
-
+  });
+  
+  $("send").onclick = sendMsg;
+  $("input").addEventListener("keydown", e => { if (e.key === "Enter") sendMsg(); });
+  
+  async function sendMsg() {
+    const text = $("input").value.trim();
+    if (!text) return;
+    if (!threadId) { alert("Start a session first."); return; }
+    $("chat").innerHTML += `<div class="msg you"><b>You:</b> ${escapeHtml(text)}</div>`;
+    $("input").value = "";
+    $("chat").innerHTML += `<div class="msg ai" id="thinking">…thinking…</div>`;
+    const res = await api("/message", { threadId, content: text });
+    const think = $("thinking"); if (think) think.remove();
+    $("chat").innerHTML += `<div class="msg ai"><b>Patti:</b><br>${nl2br(escapeHtml(res.reply || ""))}</div>`;
+    $("chat").scrollTop = $("chat").scrollHeight;
+  }
+  
+  // Upload next to Send
+  $("upload").onclick = () => {
+    if (!threadId) { alert("Start a session first (refresh the page)."); return; }
+    $("fileInput").click();
+  };
+  
+  $("fileInput").addEventListener("change", async () => {
+    const file = $("fileInput").files[0];
+    if (!file) return;
+  
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("threadId", threadId);
+  
+    $("chat").innerHTML += `<div class="msg you"><b>You uploaded:</b> ${escapeHtml(file.name)}</div>`;
+    $("chat").innerHTML += `<div class="msg ai" id="thinking">…processing PDF…</div>`;
+  
+    let data = {};
+    try {
+      const resp = await fetch("/upload", { method: "POST", body: formData });
+      data = await resp.json().catch(() => ({}));
       const think = $("thinking"); if (think) think.remove();
-      $("chat").innerHTML += `<div class="msg ai"><b>Patti:</b><br>${nl2br(escapeHtml(res.reply || ""))}</div>`;
-      $("chat").scrollTop = $("chat").scrollHeight;
-    }
-
-    // ---------- Upload PDF flow ----------
-    $("upload").onclick = () => {
-      if (!threadId) { alert("Start a session first (refresh the page)."); return; }
-      $("fileInput").click();
-    };
-
-    $("fileInput").addEventListener("change", async () => {
-      const file = $("fileInput").files[0];
-      if (!file) return;
-
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("threadId", threadId);
-
-      $("chat").innerHTML += `<div class="msg you"><b>You uploaded:</b> ${escapeHtml(file.name)}</div>`;
-      $("chat").innerHTML += `<div class="msg ai" id="thinking">…processing PDF…</div>`;
-
-      let data = {};
-      try {
-        const resp = await fetch("/upload", { method: "POST", body: formData });
-        data = await resp.json().catch(() => ({}));
-        const think = $("thinking"); if (think) think.remove();
-
-        if (!resp.ok) {
-          $("chat").innerHTML += `<div class="msg ai">❌ Upload failed: ${escapeHtml(data.error || "server error")}</div>`;
-        } else {
-          $("chat").innerHTML += `<div class="msg ai"><b>Patti:</b><br>${nl2br(escapeHtml(data.reply || ""))}</div>`;
-        }
-      } catch (e) {
-        const think = $("thinking"); if (think) think.remove();
-        $("chat").innerHTML += `<div class="msg ai">❌ Upload failed: ${escapeHtml(String(e))}</div>`;
+  
+      if (!resp.ok) {
+        $("chat").innerHTML += `<div class="msg ai">❌ Upload failed: ${escapeHtml(data.error || "server error")}</div>`;
+      } else {
+        $("chat").innerHTML += `<div class="msg ai">📎 PDF attached as context (${escapeHtml(String(data.chars||0))} chars). Ask Patti a question about it.</div>`;
       }
-
-      $("fileInput").value = ""; // reset picker
-      $("chat").scrollTop = $("chat").scrollHeight;
-    });
-
-    // Optional: only bind if seed chips exist
-    document.querySelectorAll(".seed")?.forEach(el => {
-      el.onclick = () => { $("input").value = el.textContent; $("input").focus(); };
-    });
+    } catch (e) {
+      const think = $("thinking"); if (think) think.remove();
+      $("chat").innerHTML += `<div class="msg ai">❌ Upload failed: ${escapeHtml(String(e))}</div>`;
+    }
+  
+    $("fileInput").value = ""; // reset picker
+    $("chat").scrollTop = $("chat").scrollHeight;
+  });
+  
+  // If you have seed chips elsewhere, keep this safe bind:
+  document.querySelectorAll(".seed")?.forEach(el => {
+    el.onclick = () => { $("input").value = el.textContent; $("input").focus(); };
+  });
   </script>
+
 </body>
 </html>
