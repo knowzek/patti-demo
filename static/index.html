@@ -1,9 +1,8 @@
 <!doctype html>
 <html>
 <head>
-  
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Patti - Virtual Sales Assistant (Demo)</title>
   <style>
     :root { --bg:#fff; --card:#f6f7f9; --border:#e6e8ec; --text:#111; }
@@ -13,8 +12,6 @@
     .sub { color:#555; margin: 0 0 18px; }
     .row { display:flex; gap:8px; flex-wrap: wrap; margin: 10px 0 14px; }
     input, button { padding: 10px 12px; font-size: 16px; }
-    #pin { width: 180px; }
-    #start { cursor: pointer; }
     .chat { border:1px solid var(--border); border-radius:12px; padding:16px;
             min-height:420px; background: var(--bg); }
     .msg { margin: 10px 0; line-height:1.4; }
@@ -29,64 +26,117 @@
 </head>
 <body>
   <h1>Patti - Virtual Sales Assistant (Demo)</h1>
-  <p class="sub">Patti is trained to role-play as a dealership sales assistant. She responds to incoming guest inquiries with warm, professional, brand-aligned messages that highlight dealership value, recommend vehicles, and drive toward booking an appointment.
 
-This demo version is designed for role-play so you can test Patti’s tone, objection handling, and appointment-setting skills. 
+  <p class="sub">
+    Patti is trained to role-play as a dealership sales assistant. She responds to incoming guest inquiries with warm, professional, brand-aligned messages that highlight dealership value, recommend vehicles, and drive toward booking an appointment.
+    This demo version is designed for role-play so you can test Patti’s tone, objection handling, and appointment-setting skills.
   </p>
 
-Paste a lead inquiry below to start the conversation (e.g., “I’m interested in a Telluride.”). 
+  <p class="sub">Paste a lead inquiry below to start the conversation (e.g., “I’m interested in a Telluride.”).</p>
+
   <div class="chat" id="chat"></div>
 
   <div class="footer">
-    <input id="input" placeholder="Type the customer’s message…">
+    <input id="input" placeholder="Type the customer’s message…" />
     <button id="send">Send</button>
+    <input type="file" id="fileInput" accept="application/pdf" style="display:none" />
+    <button id="upload">Upload PDF</button>
   </div>
 
-<script>
-let threadId = null;
-const $ = (id)=>document.getElementById(id);
+  <script>
+    let threadId = null;
+    const $ = (id)=>document.getElementById(id);
 
-async function api(path, body) {
-  const headers = { "Content-Type": "application/json" };
-  const res = await fetch(path, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(body || {})
-  });
-  return res.json();
-}
+    // ---------- Helpers ----------
+    function nl2br(s){ return (s || "").replace(/\n/g, "<br>"); }
+    function escapeHtml(s){
+      return (s || "").replace(/[&<>"']/g, m => (
+        {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]
+      ));
+    }
 
-$("send").onclick = sendMsg;
-$("input").addEventListener("keydown", e => { if (e.key === "Enter") sendMsg(); });
+    async function api(path, body) {
+      const headers = { "Content-Type": "application/json" };
+      const res = await fetch(path, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body || {})
+      });
+      return res.json();
+    }
 
-async function sendMsg() {
-  const text = $("input").value.trim();
-  if (!text) return;
-  if (!threadId) { alert("Start a session first."); return; }
-  $("chat").innerHTML += `<div class="msg you"><b>You:</b> ${escapeHtml(text)}</div>`;
-  $("input").value = "";
-  $("chat").innerHTML += `<div class="msg ai" id="thinking">…thinking…</div>`;
-  const res = await api("/message", { threadId, content: text });
-  const think = $("thinking"); if (think) think.remove();
-  $("chat").innerHTML += `<div class="msg ai"><b>Patti:</b><br>${nl2br(escapeHtml(res.reply || ""))}</div>`;
-  $("chat").scrollTop = $("chat").scrollHeight;
-}
+    // ---------- Auto-start a session on load ----------
+    document.addEventListener("DOMContentLoaded", async () => {
+      const res = await api("/session", {});
+      if (!res.error && res.threadId) {
+        threadId = res.threadId;
+        $("chat").innerHTML = `<div class="msg ai">New session started. Refresh the page to start a new session.</div>`;
+      } else {
+        $("chat").innerHTML = `<div class="msg ai">❌ Failed to start session.</div>`;
+      }
+    });
 
-function nl2br(s){ return s.replace(/\n/g, "<br>"); }
-function escapeHtml(s){
-  return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-}
-  
-document.addEventListener("DOMContentLoaded", async () => {
-  const res = await api("/session", {});
-  if (!res.error && res.threadId) {
-    threadId = res.threadId;
-    $("chat").innerHTML = `<div class="msg ai">New session started. Refresh the page to start a new session. </div>`;
-  }
-});
+    // ---------- Send message flow ----------
+    $("send").onclick = sendMsg;
+    $("input").addEventListener("keydown", e => { if (e.key === "Enter") sendMsg(); });
 
-document.querySelectorAll(".seed").forEach(el => el.onclick = () => { $("input").value = el.textContent; $("input").focus(); });
+    async function sendMsg() {
+      const text = $("input").value.trim();
+      if (!text) return;
+      if (!threadId) { alert("Start a session first."); return; }
 
-</script>
+      $("chat").innerHTML += `<div class="msg you"><b>You:</b> ${escapeHtml(text)}</div>`;
+      $("input").value = "";
+      $("chat").innerHTML += `<div class="msg ai" id="thinking">…thinking…</div>`;
+
+      const res = await api("/message", { threadId, content: text });
+
+      const think = $("thinking"); if (think) think.remove();
+      $("chat").innerHTML += `<div class="msg ai"><b>Patti:</b><br>${nl2br(escapeHtml(res.reply || ""))}</div>`;
+      $("chat").scrollTop = $("chat").scrollHeight;
+    }
+
+    // ---------- Upload PDF flow ----------
+    $("upload").onclick = () => {
+      if (!threadId) { alert("Start a session first (refresh the page)."); return; }
+      $("fileInput").click();
+    };
+
+    $("fileInput").addEventListener("change", async () => {
+      const file = $("fileInput").files[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("threadId", threadId);
+
+      $("chat").innerHTML += `<div class="msg you"><b>You uploaded:</b> ${escapeHtml(file.name)}</div>`;
+      $("chat").innerHTML += `<div class="msg ai" id="thinking">…processing PDF…</div>`;
+
+      let data = {};
+      try {
+        const resp = await fetch("/upload", { method: "POST", body: formData });
+        data = await resp.json().catch(() => ({}));
+        const think = $("thinking"); if (think) think.remove();
+
+        if (!resp.ok) {
+          $("chat").innerHTML += `<div class="msg ai">❌ Upload failed: ${escapeHtml(data.error || "server error")}</div>`;
+        } else {
+          $("chat").innerHTML += `<div class="msg ai"><b>Patti:</b><br>${nl2br(escapeHtml(data.reply || ""))}</div>`;
+        }
+      } catch (e) {
+        const think = $("thinking"); if (think) think.remove();
+        $("chat").innerHTML += `<div class="msg ai">❌ Upload failed: ${escapeHtml(String(e))}</div>`;
+      }
+
+      $("fileInput").value = ""; // reset picker
+      $("chat").scrollTop = $("chat").scrollHeight;
+    });
+
+    // Optional: only bind if seed chips exist
+    document.querySelectorAll(".seed")?.forEach(el => {
+      el.onclick = () => { $("input").value = el.textContent; $("input").focus(); };
+    });
+  </script>
 </body>
 </html>
