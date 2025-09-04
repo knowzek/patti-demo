@@ -5,7 +5,6 @@ from openai import OpenAI
 import io
 from PyPDF2 import PdfReader
 
-
 OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
 ASSISTANT_ID   = os.environ["PATTI_ASSISTANT_ID"]
 
